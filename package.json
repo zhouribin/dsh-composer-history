@@ -1,10 +1,16 @@
 {
   "name": "dsh-composer-history",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Shell-style ↑/↓ history recall for the DeepSeek Harness composer.",
   "license": "MIT",
   "type": "module",
-  "keywords": ["dsh", "dsh-plugin", "composer", "history", "ux"],
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "composer",
+    "history",
+    "ux"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/zhouribin/dsh-composer-history.git"
@@ -31,7 +37,9 @@
     "client": {
       "platform": "web",
       "immediately": true,
-      "inject": ["@deepseek-ai/dsh-client-ui-conversation"]
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
     }
   }
 }

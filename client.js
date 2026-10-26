@@ -62,6 +62,38 @@ window.__ModuleLoader__.load({
     }
 
     /**
+     * Where the caret sits inside the editor. A multi-line draft keeps its own
+     * arrow keys until the caret reaches the first (↑) or last (↓) visual line,
+     * so recalling never steals intra-text cursor movement.
+     * @param editor - the focused contenteditable.
+     * @returns whether the selection is collapsed and which edges it touches.
+     */
+    function caretPlacement(editor) {
+      const selection = window.getSelection?.();
+      if (selection === null || selection === undefined || selection.rangeCount === 0) {
+        return { collapsed: false, first: false, last: false };
+      }
+      const range = selection.getRangeAt(0);
+      if (!range.collapsed) return { collapsed: false, first: false, last: false };
+      const multiline = /\n/.test(editor.innerText ?? '');
+      if (!multiline) return { collapsed: true, first: true, last: true };
+      const lineHeight = Number.parseFloat(window.getComputedStyle(editor).lineHeight) || 20;
+      /** Measure the sliver of content between the edge and the caret. */
+      const measure = (fromStart) => {
+        try {
+          const probe = document.createRange();
+          probe.selectNodeContents(editor);
+          if (fromStart) probe.setEnd(range.startContainer, range.startOffset);
+          else probe.setStart(range.endContainer, range.endOffset);
+          return probe.getBoundingClientRect().height <= lineHeight * 1.6;
+        } catch {
+          return false;
+        }
+      };
+      return { collapsed: true, first: measure(true), last: measure(false) };
+    }
+
+    /**
      * Invisible bridge: it mounts inside the composer's dock, subscribes to the
      * Chat snapshot for the sent-message ring, and owns the ↑/↓/Esc handler.
      * @param props - session-standard Chat hook plus the composer's input actions.
@@ -112,16 +144,19 @@ window.__ModuleLoader__.load({
 
           const state = stateRef.current;
           const history = historyRef.current;
-          const text = editor.textContent ?? '';
+          const text = editor.innerText ?? '';
 
           if (key === 'Escape') {
             state.index = null;
             return;
           }
 
-          const browsing = state.index !== null && (text === state.inserted || text.trim() === '');
+          const placement = caretPlacement(editor);
+          if (!placement.collapsed) return;
+
+          const browsing = state.index !== null;
           if (!browsing) {
-            if (key !== 'ArrowUp' || history.length === 0) return;
+            if (key !== 'ArrowUp' || !placement.first || history.length === 0) return;
             if (config.requireEmptyDraft && text.trim() !== '') return;
             event.preventDefault();
             state.saved = text;
@@ -133,7 +168,8 @@ window.__ModuleLoader__.load({
           }
 
           if (key === 'ArrowUp') {
-            if (state.index === 0) return;
+            // Only on the first visual line: inside a multi-line draft the caret keeps ↑.
+            if (!placement.first || state.index === 0) return;
             event.preventDefault();
             state.index -= 1;
             state.inserted = history[state.index];
@@ -142,7 +178,8 @@ window.__ModuleLoader__.load({
             return;
           }
 
-          // ArrowDown walks forward and finally restores the draft it stashed.
+          // ArrowDown walks forward on the last visual line and finally restores the draft.
+          if (!placement.last) return;
           event.preventDefault();
           if (state.index >= history.length - 1) {
             const restore = state.saved;

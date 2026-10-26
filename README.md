@@ -9,11 +9,13 @@ DSH 本身没有这个功能（输入框是 Lexical 编辑器，方向键只用�
 | 按键 | 条件 | 行为 |
 | --- | --- | --- |
 | `↑` | 输入框为空、没有菜单打开 | 回填上一条消息 |
-| `↑` | 正在浏览历史 | 再往上一条 |
-| `↓` | 正在浏览历史 | 下一条；到底后恢复你原来没发出去的草稿 |
+| `↑` | 正在浏览历史、光标在**第一行** | 再往上一条 |
+| `↓` | 正在浏览历史、光标在**最后一行** | 下一条；到底后恢复你原来没发出去的草稿 |
 | `Esc` | 正在浏览历史 | 退出浏览，文本留在输入框里 |
 
-不会被抢走的场景：输入框里有内容时、`/` 指令或模型菜单打开时、中文输入法组合中（`isComposing`）、`@` 文件补全打开时。
+**多行草稿不会被抢键**：如果回填的内容是多行的，光标在中间几行时 `↑`/`↓` 仍然是正常的上下移动光标；只有光标走到第一行的开头，`↑` 才翻到更早的历史，走到最后一行末尾，`↓` 才往后翻或恢复你原来的草稿。单行内容没有可移动的余地，所以直接翻历史。
+
+不会被抢走的场景：输入框里有内容时（默认配置）、`/` 指令或模型菜单打开时、中文输入法组合中（`isComposing`）、`@` 文件补全打开时、以及选中了一段文字时。
 
 ## 安装
 
@@ -21,12 +23,12 @@ DSH 本身没有这个功能（输入框是 Lexical 编辑器，方向键只用�
 
 ```text
 请把 dsh-composer-history 装到当前 DSH profile，只装不改配置：
-git+https://github.com/zhouribin/dsh-composer-history.git#v1.0.0
+git+https://github.com/zhouribin/dsh-composer-history.git#v1.0.1
 用 plugin_manager 的 install_bundle，target 直接用上面这串；返回 already-installed 就跳过；
 application=applied 才算成功；装完提醒我重启 App（客户端模块只在启动时加载）。
 ```
 
-**手动装**：侧栏「插件」→ 添加插件 → 粘贴 `git+https://github.com/zhouribin/dsh-composer-history.git#v1.0.0` → 安装 → **重启一次 App**。
+**手动装**：侧栏「插件」→ 添加插件 → 粘贴 `git+https://github.com/zhouribin/dsh-composer-history.git#v1.0.1` → 安装 → **重启一次 App**。
 
 不需要 npm 账号，也不改 DSH 安装目录。
 
@@ -48,7 +50,7 @@ application=applied 才算成功；装完提醒我重启 App（客户端模块�
 ## 边界（先说清楚）
 
 - **历史来自当前会话的聊天记录**：你在这次会话里发过的消息，按顺序回填；换会话就是那一段的历史。没有做跨会话持久化，也没打算做——跨会话混在一起的"上一条"通常不是你想要的。
-- **只在草稿为空时触发 ↑**：这是刻意的。否则你在多行草稿里想上移一行就会被历史顶掉。
+- **只在草稿为空时开始回填**：这是刻意的。之后在历史里翻动时，`↑`/`↓` 还要满足「光标在第一行 / 最后一行」，所以多行内容的光标移动永远不会被打断。
 - **不改终端、不改弹窗**：只对主输入框生效。
 - **依赖 DSH 的插槽和输入 API**（`conversation.composer.dock`、`inputActions.setDraft`、Chat 快照的 `user` 节点）。官方某次更新改了名字，插件会静默失效，不影响 DSH 本体，卸载即恢复。
 
@@ -56,6 +58,11 @@ application=applied 才算成功；装完提醒我重启 App（客户端模块�
 
 - Host 端只做一件事：把 `enabled / maxEntries / requireEmptyDraft` 通过 `webserver/index-inject` 发给页面。
 - 客户端注册一个**不可见**的组件到 `conversation.composer.dock`（插槽会隐藏它，不占布局），从 `useChat` 快照里取 `kind: 'user'` 的节点文本组成历史环，用捕获阶段的 `keydown` 接管 ↑/↓/Esc，再调 `inputActions.setDraft()` 写回。
+
+## 版本
+
+- `1.0.1` — 多行历史不再抢 `↑`/`↓`：按光标所在行判断（第一行才翻更早、最后一行才翻更新），选中文字时不介入。
+- `1.0.0` — 首个版本。
 
 ## 授权
 
