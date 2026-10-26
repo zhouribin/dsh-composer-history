@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Composer History",
+    "description": "Press ↑ on an empty composer to recall the previous message, ↑/↓ to walk history, Esc to leave. Menus and IME composition keep their own arrow keys."
+  }
+}

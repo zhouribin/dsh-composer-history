@@ -1,0 +1,8 @@
+# Composer History: shell-style ↑/↓ recall in the message box.
+- insert:
+    - id: composer-history
+      name: 'dsh-composer-history'
+      config:
+        enabled: true
+        maxEntries: 50
+        requireEmptyDraft: true
